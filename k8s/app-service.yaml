@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-hub-service
+  labels:
+    app: inventory-hub
+spec:
+  selector:
+    app: inventory-hub
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 3000
+      nodePort: 30081
+  type: NodePort

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-hub-deployment
+  labels:
+    app: inventory-hub
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: inventory-hub
+  template:
+    metadata:
+      labels:
+        app: inventory-hub
+    spec:
+      containers:
+        - name: inventory-hub
+          image: x0shariq/inventory-hub:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: APP_NAME
+              value: "InventoryHub"
+            - name: MONGO_URI
+              value: "mongodb://mongo-service:27017/inventoryhub"
+            - name: MONGODB_URI
+              value: "mongodb://mongo-service:27017/inventoryhub"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 20

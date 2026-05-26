@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InventoryHub</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="layout">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Secure Software Development (SSDD) Project</p>
+        <h1>InventoryHub</h1>
+        <p class="subtitle">A simple inventory management web application using Node.js, Express, MongoDB, Docker, Kubernetes, Jenkins, Prometheus and Grafana.</p>
+      </div>
+      <div class="status-card">
+        <span id="health-dot" class="dot"></span>
+        <div>
+          <strong id="app-status">Checking...</strong>
+          <p id="db-status">Database status loading</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <form id="product-form" class="card">
+        <h2>Add Product</h2>
+        <label>
+          Product Name
+          <input id="name" type="text" placeholder="Keyboard" required />
+        </label>
+        <label>
+          Category
+          <input id="category" type="text" placeholder="Electronics" required />
+        </label>
+        <label>
+          Quantity
+          <input id="quantity" type="number" min="0" placeholder="12" required />
+        </label>
+        <label>
+          Price
+          <input id="price" type="number" min="0" step="0.01" placeholder="3500" required />
+        </label>
+        <button type="submit">Save Product</button>
+        <p id="message"></p>
+      </form>
+
+      <section class="card products-card">
+        <div class="card-header">
+          <div>
+            <h2>Inventory List</h2>
+            <p>Products are stored permanently in MongoDB.</p>
+          </div>
+          <button id="refresh-btn" class="secondary" type="button">Refresh</button>
+        </div>
+        <div id="products" class="products"></div>
+      </section>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

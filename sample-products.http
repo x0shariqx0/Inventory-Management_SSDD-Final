@@ -1,0 +1,19 @@
+### Health check
+GET http://localhost:3000/health
+
+### Metrics
+GET http://localhost:3000/metrics
+
+### Create Product
+POST http://localhost:3000/api/products
+Content-Type: application/json
+
+{
+  "name": "Wireless Mouse",
+  "category": "Electronics",
+  "quantity": 25,
+  "price": 1800
+}
+
+### Get Products
+GET http://localhost:3000/api/products

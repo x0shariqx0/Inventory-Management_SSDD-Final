@@ -1,0 +1,23 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: inventoryhub-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  app:
+    build: .
+    container_name: inventoryhub-app
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - APP_NAME=InventoryHub
+      - MONGODB_URI=mongodb://mongo:27017/inventoryhub
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:
