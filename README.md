@@ -18,31 +18,28 @@ InventoryHub is a simple inventory management web application created for the Se
 
 ```text
 Inventory-Management_SSDD-Final/
-├── src/
-│   ├── index.html
-│   ├── style.css
-│   └── app.js
 ├── k8s/
-│   ├── mongo-pvc.yaml
-│   ├── mongo-deployment.yaml
-│   ├── mongo-service.yaml
 │   ├── app-deployment.yaml
-│   ├── app-service.yaml
 │   ├── app-hpa.yaml
-│   └── commands.txt
-├── monitoring/
-│   ├── prometheus-values.yaml
-│   ├── servicemonitor.yaml
-│   └── grafana-dashboard-inventoryhub.json
-├── server.js
-├── package.json
+│   ├── app-service.yaml
+│   ├── mongo-deployment.yaml
+│   ├── mongo-pv.yaml
+│   ├── mongo-pvc.yaml
+│   └── mongo-service.yaml
+├── src/
+│   ├── app.js
+│   ├── index.html
+│   └── style.css
+├── .dockerignore
+├── .env.example
+├── .gitignore
 ├── Dockerfile
 ├── Jenkinsfile
-├── .env.example
-├── .dockerignore
-├── .gitignore
-├── REPORT_GUIDE.md
-└── SCREENSHOTS_CHECKLIST.md
+├── README.md
+├── docker-compose.yml
+├── package.json
+├── sample-products.http
+└── server.js
 ```
 
 ## Run Locally
@@ -253,6 +250,4 @@ Check application logs:
 kubectl logs -l app=inventory-hub
 ```
 
-## Report Submission
 
-Use `REPORT_GUIDE.md` for the report format and `SCREENSHOTS_CHECKLIST.md` for screenshots you should capture.
