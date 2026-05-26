@@ -1,0 +1,128 @@
+### 1. Register a new Admin User
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "custom_admin",
+  "password": "adminpassword123",
+  "role": "admin"
+}
+
+### 2. Register a new Staff User
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "custom_staff",
+  "password": "staffpassword123",
+  "role": "staff"
+}
+
+### 3. Login as Admin (Pre-seeded user or custom_admin)
+# @name adminLogin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "adminpassword"
+}
+
+### 4. Login as Staff (Pre-seeded user or custom_staff)
+# @name staffLogin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "staff",
+  "password": "staffpassword"
+}
+
+### 5. Get current user profile (Me endpoint, replace JWT_TOKEN)
+GET http://localhost:3000/api/auth/me
+Authorization: Bearer JWT_TOKEN
+
+### 6. Create Product - Success (Allowed for Admin or Staff, replace JWT_TOKEN)
+# @name createProduct
+POST http://localhost:3000/api/products
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Mechanical Keyboard",
+  "category": "Peripherals",
+  "quantity": 50,
+  "price": 4500
+}
+
+### 7. Create Product - Suspicious Stock Anomaly Test (Quantity > 100, triggers security alert & Kafka event)
+POST http://localhost:3000/api/products
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Huge Stock Order",
+  "category": "Office Supply",
+  "quantity": 180,
+  "price": 150
+}
+
+### 8. Create Product - XSS Sanitization Failure Test (Should fail with 400 Bad Request)
+POST http://localhost:3000/api/products
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Monitor <script>alert('XSS')</script>",
+  "category": "Screens",
+  "quantity": 10,
+  "price": 25000
+}
+
+### 9. Update Product - Normal (Replace PRODUCT_ID and JWT_TOKEN)
+PUT http://localhost:3000/api/products/PRODUCT_ID
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Mechanical Keyboard",
+  "category": "Peripherals",
+  "quantity": 55,
+  "price": 4800
+}
+
+### 10. Update Product - Suspicious Stock Change Anomaly Test (Replace PRODUCT_ID and JWT_TOKEN, change quantity by > 100)
+PUT http://localhost:3000/api/products/PRODUCT_ID
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Mechanical Keyboard",
+  "category": "Peripherals",
+  "quantity": 160,
+  "price": 4800
+}
+
+### 11. Delete Product as Staff (Should fail with 403 Forbidden and trigger security alert & Kafka event)
+DELETE http://localhost:3000/api/products/PRODUCT_ID
+Authorization: Bearer STAFF_JWT_TOKEN
+
+### 12. Delete Product as Admin (Should succeed, replace PRODUCT_ID and ADMIN_JWT_TOKEN)
+DELETE http://localhost:3000/api/products/PRODUCT_ID
+Authorization: Bearer ADMIN_JWT_TOKEN
+
+### 13. Get Audit Logs as Staff (Should fail with 403 Forbidden)
+GET http://localhost:3000/api/audit-logs
+Authorization: Bearer STAFF_JWT_TOKEN
+
+### 14. Get Audit Logs as Admin (Should succeed)
+GET http://localhost:3000/api/audit-logs
+Authorization: Bearer ADMIN_JWT_TOKEN
+
+### 15. Get Security Alerts as Staff (Should fail with 403 Forbidden)
+GET http://localhost:3000/api/security-alerts
+Authorization: Bearer STAFF_JWT_TOKEN
+
+### 16. Get Security Alerts as Admin (Should succeed)
+GET http://localhost:3000/api/security-alerts
+Authorization: Bearer ADMIN_JWT_TOKEN

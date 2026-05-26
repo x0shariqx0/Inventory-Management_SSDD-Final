@@ -1,19 +1,124 @@
-### Health check
+### 1. Health check (Unprotected)
 GET http://localhost:3000/health
 
-### Metrics
+### 2. Metrics (Unprotected)
 GET http://localhost:3000/metrics
 
-### Create Product
-POST http://localhost:3000/api/products
+### 3. Register a new custom user
+POST http://localhost:3000/api/auth/register
 Content-Type: application/json
 
 {
-  "name": "Wireless Mouse",
-  "category": "Electronics",
-  "quantity": 25,
-  "price": 1800
+  "username": "tester",
+  "password": "testpassword",
+  "role": "staff"
 }
 
-### Get Products
+### 4. Register - Validation Test (Should fail due to XSS injection attempt)
+POST http://localhost:3000/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "user<script>alert('xss')</script>",
+  "password": "password123",
+  "role": "staff"
+}
+
+### 5. Login as Admin (Pre-seeded user)
+# @name adminLogin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "adminpassword"
+}
+
+### 6. Login as Staff (Pre-seeded user)
+# @name staffLogin
+POST http://localhost:3000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "staff",
+  "password": "staffpassword"
+}
+
+### 7. Get Me (Auth test, replace JWT_TOKEN with the token from login)
+GET http://localhost:3000/api/auth/me
+Authorization: Bearer JWT_TOKEN
+
+### 8. Get Products (Without Auth - Should fail with 401)
 GET http://localhost:3000/api/products
+
+### 9. Get Products (With Staff/Admin Auth - Replace JWT_TOKEN)
+GET http://localhost:3000/api/products
+Authorization: Bearer JWT_TOKEN
+
+### 10. Create Product - Validation & XSS Test (Should fail with 400 validation error)
+POST http://localhost:3000/api/products
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Laptop <script>evil()</script>",
+  "category": "Electronics",
+  "quantity": 10,
+  "price": 75000
+}
+
+### 11. Create Product - Success & Stock Alert Test (Create with quantity > 100 to trigger alert)
+POST http://localhost:3000/api/products
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Large Stock Item",
+  "category": "Office",
+  "quantity": 150,
+  "price": 200
+}
+
+### 12. Create Product - Normal Success (Replace JWT_TOKEN)
+POST http://localhost:3000/api/products
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Standard Mouse",
+  "category": "Electronics",
+  "quantity": 30,
+  "price": 1500
+}
+
+### 13. Update Product - Trigger Stock Alert (Change qty by > 100, replace PRODUCT_ID and JWT_TOKEN)
+PUT http://localhost:3000/api/products/PRODUCT_ID
+Authorization: Bearer JWT_TOKEN
+Content-Type: application/json
+
+{
+  "name": "Standard Mouse",
+  "category": "Electronics",
+  "quantity": 160,
+  "price": 1500
+}
+
+### 14. Delete Product as Staff (Should fail with 403 and trigger security alert)
+DELETE http://localhost:3000/api/products/PRODUCT_ID
+Authorization: Bearer STAFF_JWT_TOKEN
+
+### 15. Delete Product as Admin (Should succeed, replace PRODUCT_ID and ADMIN_JWT_TOKEN)
+DELETE http://localhost:3000/api/products/PRODUCT_ID
+Authorization: Bearer ADMIN_JWT_TOKEN
+
+### 16. Get Audit Logs (Staff Auth - Should fail with 403)
+GET http://localhost:3000/api/audit-logs
+Authorization: Bearer STAFF_JWT_TOKEN
+
+### 17. Get Audit Logs (Admin Auth - Should succeed)
+GET http://localhost:3000/api/audit-logs
+Authorization: Bearer ADMIN_JWT_TOKEN
+
+### 18. Get Security Alerts (Admin Auth - Should succeed)
+GET http://localhost:3000/api/security-alerts
+Authorization: Bearer ADMIN_JWT_TOKEN

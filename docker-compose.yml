@@ -4,8 +4,38 @@ services:
     container_name: inventoryhub-mongo
     ports:
       - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-adminpassword}
     volumes:
       - mongo-data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: inventoryhub-redis
+    ports:
+      - "6379:6379"
+
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    container_name: inventoryhub-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: inventoryhub-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      - zookeeper
 
   app:
     build: .
@@ -15,9 +45,16 @@ services:
     environment:
       - PORT=3000
       - APP_NAME=InventoryHub
-      - MONGODB_URI=mongodb://mongo:27017/inventoryhub
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-adminpassword}@mongo:27017/inventoryhub?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-adminpassword}@mongo:27017/inventoryhub?authSource=admin
+      - JWT_SECRET=${JWT_SECRET:-super_secret_jwt_key_change_me_in_production}
+      - CLIENT_ORIGIN=${CLIENT_ORIGIN:-http://localhost:3000}
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKER=kafka:9092
     depends_on:
       - mongo
+      - redis
+      - kafka
 
 volumes:
   mongo-data:

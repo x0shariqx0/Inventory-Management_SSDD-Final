@@ -23,6 +23,27 @@
       </div>
     </section>
 
+    <section class="card auth-card">
+      <div class="auth-header">
+        <h2>Security &amp; Auth Control Panel</h2>
+        <p>Log in to test Role-Based Access Control (RBAC), view logs, and trigger security alerts.</p>
+      </div>
+      <div class="auth-actions">
+        <button id="login-admin-btn" type="button">Login as Admin (Full Control)</button>
+        <button id="login-staff-btn" type="button">Login as Staff (No Delete)</button>
+        <button id="logout-btn" class="secondary" type="button" style="display:none;">Logout</button>
+        <span id="auth-status" class="auth-status">Not logged in (Requests will fail with 401)</span>
+      </div>
+      <div id="admin-panel" class="admin-panel" style="display: none;">
+        <h3>Admin-Only Dashboard</h3>
+        <div class="panel-buttons">
+          <button id="view-logs-btn" class="secondary" type="button">View Audit Logs</button>
+          <button id="view-alerts-btn" class="secondary" type="button">View Security Alerts</button>
+        </div>
+        <div id="logs-display" class="logs-display" style="display: none;"></div>
+      </div>
+    </section>
+
     <section class="grid">
       <form id="product-form" class="card">
         <h2>Add Product</h2>

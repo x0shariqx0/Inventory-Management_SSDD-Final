@@ -16,19 +16,47 @@ spec:
     spec:
       containers:
         - name: inventory-hub
-          image: x0shariq/inventory-hub:latest
+          image: x0shariqx0/inventory-hub:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           env:
             - name: PORT
               value: "3000"
             - name: APP_NAME
               value: "InventoryHub"
             - name: MONGO_URI
-              value: "mongodb://mongo-service:27017/inventoryhub"
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-hub-secrets
+                  key: MONGO_URI
             - name: MONGODB_URI
-              value: "mongodb://mongo-service:27017/inventoryhub"
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-hub-secrets
+                  key: MONGO_URI
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-hub-secrets
+                  key: JWT_SECRET
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-hub-secrets
+                  key: REDIS_URL
+            - name: KAFKA_BROKER
+              valueFrom:
+                secretKeyRef:
+                  name: inventory-hub-secrets
+                  key: KAFKA_BROKER
           resources:
             requests:
               cpu: "100m"
@@ -40,7 +68,7 @@ spec:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
