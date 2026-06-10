@@ -1,173 +1,140 @@
-# InventoryHub - Secure Software Development (SSDD) Project
+# InventoryHub - Secure Cloud-Native Inventory Platform
 
-InventoryHub is a simple inventory management web application created for the Secure Software Development (SSDD) project. It uses Node.js, Express and MongoDB. It can be containerized with Docker, deployed on Kubernetes, automated through Jenkins, and monitored using Prometheus and Grafana.
+InventoryHub is an enterprise secure, cloud-native inventory management platform built for the Secure Software Development (SSDD) lab final project. 
 
-## Project Features
+It features a multi-page web application architecture (Landing Page, System Sign In, and Management Dashboard) designed with Zero-Trust network policies, mock OIDC identity token claims validation, and advanced runtime logging.
 
-- Add inventory products with name, category, quantity and price
-- Store product data in MongoDB
-- View all saved products from the web interface
-- Delete products
-- Health check endpoint for Kubernetes probes
-- Kubernetes deployment with MongoDB PVC
+---
 
-## Folder Structure
+## 🚀 Key Project Features
+
+- **Multi-Page Layout**: Dedicated landing page, separate credential-based login portal, and a secure administration dashboard.
+- **Admin-Restricted Registration**: Only authenticated administrators can register staff members and issue credentials.
+- **Role-Based Access Control (RBAC)**: Admins have full access (CRUD + Audit Trails + Warnings); Staff can only create/update products (Restricted deletions).
+- **Hardened Caching & Events**: Redis and Kafka client integrations built with SSL/TLS and password/SASL authentication structures.
+- **Microservice Hardening**: Containers running as non-root with dropped Linux capabilities and CPU/Memory limits.
+- **Policy-as-Code**:workloads are governed at the cluster level by Kyverno policies.
+- **Static Code Analysis**: Custom scan configurations defined for SonarQube and CodeQL.
+
+---
+
+## 📁 Project Directory Structure
 
 ```text
-Inventory-Management_SSDD-Final/
-├── k8s/
+inventory-management/
+├── docker/                             # Hardened Docker contexts
+│   ├── Dockerfile
+│   └── .dockerignore
+├── docs/                               # Security documentation
+│   └── Memory_Safety_Mitigation.md
+├── k8s/                                # Kubernetes orchestrations
+│   ├── charts/                         # Helm Chart packaging
+│   │   └── inventory-hub/
+│   │       ├── Chart.yaml
+│   │       ├── values.yaml
+│   │       └── templates/              # Manifest templates (PV, PVC, HPA, NetPolicy, etc.)
+│   ├── policies/                       # Policy-as-Code
+│   │   └── pod-security-policies.yaml  # Kyverno pod security standards
 │   ├── app-deployment.yaml
 │   ├── app-hpa.yaml
 │   ├── app-service.yaml
+│   ├── kafka-deployment.yaml
+│   ├── kafka-service.yaml
 │   ├── mongo-deployment.yaml
 │   ├── mongo-pv.yaml
 │   ├── mongo-pvc.yaml
-│   └── mongo-service.yaml
-├── src/
+│   ├── mongo-service.yaml
+│   ├── network-policy.yaml
+│   ├── redis-deployment.yaml
+│   ├── redis-service.yaml
+│   └── secret.yaml
+├── reports/                            # CIS compliance and test audit reports
+├── src/                                # Frontend UI assets (index.html, login.html, dashboard.html)
 │   ├── app.js
 │   ├── index.html
+│   ├── login.html
+│   ├── dashboard.html
 │   └── style.css
-├── .dockerignore
-├── .env.example
-├── .gitignore
-├── Dockerfile
-├── Jenkinsfile
-├── README.md
-├── docker-compose.yml
+├── docker-compose.yml                  # Local environment orchestration
 ├── package.json
-├── sample-products.http
-└── server.js
+├── server.js                           # Node.js Express Secure API Server
+├── server.test.js                      # Jest Integration Test Suite
+└── sonar-project.properties            # SonarQube scanning properties
 ```
 
-## Run Locally
+---
 
-Install dependencies:
+## ⚙️ Initial Run Procedures
 
+### Option 1: Run via Docker Compose (Simplest & Recommended)
+Rebuild and launch the entire secure container stack including the backend application, Zookeeper, Kafka, Redis, and MongoDB:
 ```bash
-npm install
+docker compose up --build -d
 ```
+- Open your browser to: [http://localhost:3000](http://localhost:3000)
 
-Create `.env` file:
+---
 
+### Option 2: Running Locally (Bare Metal Node.js)
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+2. **Setup Local Environment**:
+   Copy `.env.example` to `.env` and fill in local connection URIs:
+   ```bash
+   cp .env.example .env
+   ```
+3. **Start Development Server**:
+   Ensure local Mongo, Redis, and Kafka services are running, then execute:
+   ```bash
+   npm start
+   ```
+
+---
+
+## 🔐 Credentials & Access Control Flow
+
+The platform initializes a single system administrator. Admins are then responsible for provisioning staff members:
+
+1. **System Administrator (Pre-seeded)**:
+   - **Username**: `admin`
+   - **Password**: `adminpassword`
+   - **Access**: Click **Access Admin Portal** on the Landing Page, login with the credentials, and manage inventory.
+2. **Staff Provisioning**:
+   - Logged in as `admin`, use the **Register New Staff Member** panel in the dashboard to create a new staff account (e.g., `staff2` / `staffpassword`).
+   - This sends an authorized call to `/api/auth/register` (guarded so only admins can execute it) and registers the user.
+3. **Staff Login**:
+   - Log out, access the **Staff Member Portal** on the landing page, and sign in with the new staff credentials.
+
+---
+
+## 🧪 Testing and Verification
+
+### Run Automated Unit Tests
+Execute the Jest integration test suite verifying OIDC validations, route protections, and RBAC mappings:
 ```bash
-cp .env.example .env
+npm run test
 ```
 
-Start MongoDB locally, then run:
+---
 
+## ☸️ Kubernetes & Helm Deployments
+
+### Apply Raw Kubernetes Manifests
+Apply secrets and resources directly to your cluster:
 ```bash
-npm start
+kubectl apply -f k8s/secret.yaml
+kubectl apply -f k8s/
 ```
 
-Open:
-
-```text
-http://localhost:3000
-```
-
-Check health:
-
-```text
-http://localhost:3000/health
-```
-
-## Push Project to GitHub
-
+### Install using Helm Chart
+Deploy the templated and parameterized chart:
 ```bash
-git init
-git add .
-git commit -m "Initial InventoryHub SSDD project"
-git branch -M main
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/Inventory-Management_SSDD-Final.git
-git push -u origin main
+helm install inventory-hub k8s/charts/inventory-hub
 ```
-
-## Important Replacement Before Deploying
-
-Replace this placeholder in `k8s/app-deployment.yaml`:
-
-```text
-DOCKERHUB_USERNAME/inventory-hub
-```
-
-Example:
-
-```text
-umair4004/inventory-hub
-```
-
-## Manual Docker Commands
-
-Build Docker image:
-
+Verify the installation:
 ```bash
-docker build -t DOCKERHUB_USERNAME/inventory-hub:latest .
-```
-
-Login to DockerHub:
-
-```bash
-docker login
-```
-
-Push image:
-
-```bash
-docker push DOCKERHUB_USERNAME/inventory-hub:latest
-```
-
-## Kubernetes Deployment Commands
-
-Apply MongoDB storage and database files:
-
-```bash
-kubectl apply -f k8s/mongo-pvc.yaml
-kubectl apply -f k8s/mongo-deployment.yaml
-kubectl apply -f k8s/mongo-service.yaml
-```
-
-Apply application files:
-
-```bash
-kubectl apply -f k8s/app-deployment.yaml
-kubectl apply -f k8s/app-service.yaml
-kubectl apply -f k8s/app-hpa.yaml
-```
-
-Check deployment:
-
-```bash
+helm list
 kubectl get pods
-kubectl get deployments
-kubectl get svc
-kubectl get pvc
-kubectl get hpa
 ```
-
-Port forward application:
-
-```bash
-kubectl port-forward svc/inventory-hub-service 8080:80 --address=0.0.0.0
-```
-
-Open in browser:
-
-```text
-http://EC2_PUBLIC_IP:8080
-```
-
-## Useful Testing Commands
-
-Check pods:
-
-```bash
-kubectl get pods -o wide
-```
-
-Check application logs:
-
-```bash
-kubectl logs -l app=inventory-hub
-```
-
-
