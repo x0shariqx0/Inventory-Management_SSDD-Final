@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory Management Dashboard - InventoryHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="layout">
+    <!-- Authenticated Header -->
+    <header class="hero">
+      <div>
+        <p class="eyebrow">InventoryHub Management Console</p>
+        <h1 id="dashboard-heading">Inventory Dashboard</h1>
+        <p class="subtitle" id="auth-status">Verifying secure token context...</p>
+      </div>
+      <div style="display: flex; gap: 16px; align-items: center;">
+        <div class="status-card">
+          <span id="health-dot" class="dot"></span>
+          <div>
+            <strong id="app-status">Checking...</strong>
+            <p id="db-status">Service health loading</p>
+          </div>
+        </div>
+        <button id="logout-btn" class="secondary" type="button" style="width: auto;">Sign Out</button>
+      </div>
+    </header>
+
+    <!-- Top Admin Management Bar -->
+    <section id="admin-management-section" class="grid" style="display: none; margin-bottom: 28px; grid-template-columns: 1fr 1fr;">
+      <!-- Admin Actions Panel -->
+      <div id="admin-panel" class="card">
+        <h2>Security &amp; Audit Logs Console</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Admin-only real-time threat alerts inspection and database event logs trace:</p>
+        <div class="panel-buttons" style="display: flex; gap: 12px; margin-bottom: 16px;">
+          <button id="view-logs-btn" class="secondary" type="button">Fetch Audit Logs</button>
+          <button id="view-alerts-btn" class="secondary" type="button">Fetch Security Alerts</button>
+        </div>
+        <div id="logs-display" class="logs-display" style="display: none;"></div>
+      </div>
+
+      <!-- Admin Staff Management Form -->
+      <div id="staff-management-panel" class="card">
+        <h2>Register New Staff Member</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 16px;">Create a new staff credential and assign system access clearance:</p>
+        <form id="staff-registration-form">
+          <div class="input-group">
+            <label for="reg-username">Username</label>
+            <input id="reg-username" type="text" placeholder="e.g. staff2" required />
+          </div>
+          <div class="input-group">
+            <label for="reg-password">Password</label>
+            <input id="reg-password" type="password" placeholder="e.g. password123" required />
+          </div>
+          <button type="submit" id="reg-submit-btn">Create Staff Account</button>
+        </form>
+        <p id="registration-message" style="margin-top: 10px; font-size: 13.5px; font-weight: 500; text-align: center;"></p>
+      </div>
+    </section>
+
+    <!-- Core Inventory Operations Grid -->
+    <section class="grid">
+      <!-- Add Product Form -->
+      <form id="product-form" class="card">
+        <h2>Add Inventory Product</h2>
+        <label>
+          Product Name
+          <input id="name" type="text" placeholder="e.g. Mechanical Keyboard" required />
+        </label>
+        <label>
+          Category
+          <input id="category" type="text" placeholder="e.g. Peripherals" required />
+        </label>
+        <label>
+          Quantity
+          <input id="quantity" type="number" min="0" placeholder="e.g. 50" required />
+        </label>
+        <label>
+          Price
+          <input id="price" type="number" min="0" step="0.01" placeholder="e.g. 4500" required />
+        </label>
+        <button type="submit">Save Product</button>
+        <p id="message"></p>
+      </form>
+
+      <!-- Inventory Grid Listing -->
+      <section class="card products-card">
+        <div class="card-header">
+          <div>
+            <h2>Active Inventory Listings</h2>
+            <p>Database products are fetched via authenticated tokens.</p>
+          </div>
+          <button id="refresh-btn" class="secondary" type="button">Sync Data</button>
+        </div>
+        <div id="products" class="products"></div>
+      </section>
+    </section>
+  </main>
+  
+  <script src="/app.js"></script>
+</body>
+</html>

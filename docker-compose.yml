@@ -36,7 +36,9 @@ services:
       - zookeeper
 
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     container_name: inventoryhub-app
     ports:
       - "3000:3000"

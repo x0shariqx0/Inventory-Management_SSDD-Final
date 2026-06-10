@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>System Login - InventoryHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    /* Specific centering layout for the login screen */
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .login-container {
+      width: 100%;
+      max-width: 440px;
+    }
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: var(--transition);
+    }
+    .back-link:hover {
+      color: var(--primary);
+      transform: translateX(-2px);
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <a href="/index.html" class="back-link">← Return to Landing Page</a>
+    
+    <section class="card auth-card">
+      <div class="auth-header">
+        <h2 id="login-title">System Access Sign In</h2>
+        <p id="login-subtitle">Enter your credentials to access the secure InventoryHub database.</p>
+      </div>
+
+      <div class="auth-actions" style="display: block;">
+        <form id="auth-form" class="login-form">
+          <div class="form-row">
+            <div class="input-group">
+              <label for="auth-username">Username</label>
+              <input id="auth-username" type="text" placeholder="Enter username..." required />
+            </div>
+            <div class="input-group">
+              <label for="auth-password">Password</label>
+              <input id="auth-password" type="password" placeholder="Enter password..." required />
+            </div>
+            <button type="submit" id="login-submit-btn">Verify Credentials</button>
+          </div>
+        </form>
+
+        <div id="quick-login-hints" class="quick-login-hints">
+          <span class="hint-label">Quick Fill:</span>
+          <button type="button" class="badge-btn" id="quick-fill-btn">Autofill</button>
+        </div>
+
+        <p id="message" style="margin-top: 14px;"></p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const authForm = document.getElementById('auth-form');
+    const authUsernameInput = document.getElementById('auth-username');
+    const authPasswordInput = document.getElementById('auth-password');
+    const loginTitle = document.getElementById('login-title');
+    const loginSubtitle = document.getElementById('login-subtitle');
+    const quickFillBtn = document.getElementById('quick-fill-btn');
+    const message = document.getElementById('message');
+
+    // Parse URL parameter to check user context
+    const urlParams = new URLSearchParams(window.location.search);
+    const role = urlParams.get('role') || 'staff';
+
+    // Customize headings and helper autofill values
+    if (role === 'admin') {
+      loginTitle.textContent = "Administrator Portal Login";
+      loginSubtitle.textContent = "Secure admin credentials are required to authenticate.";
+      quickFillBtn.textContent = "Autofill Admin";
+      quickFillBtn.addEventListener('click', () => {
+        authUsernameInput.value = 'admin';
+        authPasswordInput.value = 'adminpassword';
+      });
+    } else {
+      loginTitle.textContent = "Staff Member Portal Login";
+      loginSubtitle.textContent = "Staff credentials are required to access inventory listings.";
+      quickFillBtn.textContent = "Autofill Staff";
+      quickFillBtn.addEventListener('click', () => {
+        authUsernameInput.value = 'staff';
+        authPasswordInput.value = 'staffpassword';
+      });
+    }
+
+    // Handle Authentication Submission
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      message.textContent = "Authenticating secure keys...";
+      message.style.color = "var(--primary)";
+      
+      const username = authUsernameInput.value;
+      const password = authPasswordInput.value;
+
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || 'Verification failed');
+        }
+
+        // Cache the token
+        localStorage.setItem('jwt_token', data.token);
+        message.textContent = "Success! Access granted. Redirecting...";
+        message.style.color = "var(--success)";
+
+        setTimeout(() => {
+          window.location.href = '/dashboard.html';
+        }, 800);
+      } catch (error) {
+        message.textContent = `Error: ${error.message}`;
+        message.style.color = "var(--danger)";
+      }
+    });
+  </script>
+</body>
+</html>

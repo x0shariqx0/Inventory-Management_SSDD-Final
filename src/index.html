@@ -3,82 +3,98 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>InventoryHub</title>
+  <title>InventoryHub - Secure Cloud-Native Inventory Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <main class="layout">
-    <section class="hero">
+    <!-- Header Section -->
+    <header class="hero">
       <div>
-        <p class="eyebrow">Secure Software Development (SSDD) Project</p>
+        <p class="eyebrow">CYC386 Secure Software Design & Development</p>
         <h1>InventoryHub</h1>
-        <p class="subtitle">A simple inventory management web application using Node.js, Express, MongoDB, Docker, Kubernetes, Jenkins, Prometheus and Grafana.</p>
+        <p class="subtitle">An enterprise secure, cloud-native inventory management system engineered with Zero-Trust network policies, OIDC identity claims validation, and advanced runtime observability.</p>
       </div>
       <div class="status-card">
         <span id="health-dot" class="dot"></span>
         <div>
           <strong id="app-status">Checking...</strong>
-          <p id="db-status">Database status loading</p>
+          <p id="db-status">Service health loading</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Portals Card -->
+    <section class="card portal-card">
+      <div class="portal-header">
+        <h2>Authorized System Portals</h2>
+        <p>Access the InventoryHub services by selecting your designated security portal below:</p>
+      </div>
+      <div class="portal-grid">
+        <div class="portal-option admin-portal">
+          <div class="portal-icon">🔑</div>
+          <h3>Administrator Portal</h3>
+          <p>Full database management capability, audit logs inspection, threat alerts auditing, and staff credentials creation.</p>
+          <a href="/login.html?role=admin" class="btn portal-btn">Access Admin Portal</a>
+        </div>
+        <div class="portal-option staff-portal">
+          <div class="portal-icon">👤</div>
+          <h3>Staff Member Portal</h3>
+          <p>Standard inventory tracking access to create and update stock items. Deletions and system configurations are restricted.</p>
+          <a href="/login.html?role=staff" class="btn portal-btn secondary">Access Staff Portal</a>
         </div>
       </div>
     </section>
 
-    <section class="card auth-card">
-      <div class="auth-header">
-        <h2>Security &amp; Auth Control Panel</h2>
-        <p>Log in to test Role-Based Access Control (RBAC), view logs, and trigger security alerts.</p>
+    <!-- Secure Architecture Highlights -->
+    <section class="landing-features">
+      <div class="section-title">
+        <h2>Multi-Layer Security Architecture</h2>
+        <p>This system implements strict defensive designs across the software lifecycle:</p>
       </div>
-      <div class="auth-actions">
-        <button id="login-admin-btn" type="button">Login as Admin (Full Control)</button>
-        <button id="login-staff-btn" type="button">Login as Staff (No Delete)</button>
-        <button id="logout-btn" class="secondary" type="button" style="display:none;">Logout</button>
-        <span id="auth-status" class="auth-status">Not logged in (Requests will fail with 401)</span>
-      </div>
-      <div id="admin-panel" class="admin-panel" style="display: none;">
-        <h3>Admin-Only Dashboard</h3>
-        <div class="panel-buttons">
-          <button id="view-logs-btn" class="secondary" type="button">View Audit Logs</button>
-          <button id="view-alerts-btn" class="secondary" type="button">View Security Alerts</button>
+      <div class="features-grid">
+        <div class="card feature-item">
+          <h4>Zero-Trust Isolation</h4>
+          <p>Restricted network policies ensure the application pod communicates exclusively with specified database, cache, and broker endpoints.</p>
         </div>
-        <div id="logs-display" class="logs-display" style="display: none;"></div>
-      </div>
-    </section>
-
-    <section class="grid">
-      <form id="product-form" class="card">
-        <h2>Add Product</h2>
-        <label>
-          Product Name
-          <input id="name" type="text" placeholder="Keyboard" required />
-        </label>
-        <label>
-          Category
-          <input id="category" type="text" placeholder="Electronics" required />
-        </label>
-        <label>
-          Quantity
-          <input id="quantity" type="number" min="0" placeholder="12" required />
-        </label>
-        <label>
-          Price
-          <input id="price" type="number" min="0" step="0.01" placeholder="3500" required />
-        </label>
-        <button type="submit">Save Product</button>
-        <p id="message"></p>
-      </form>
-
-      <section class="card products-card">
-        <div class="card-header">
-          <div>
-            <h2>Inventory List</h2>
-            <p>Products are stored permanently in MongoDB.</p>
-          </div>
-          <button id="refresh-btn" class="secondary" type="button">Refresh</button>
+        <div class="card feature-item">
+          <h4>Token Validation (OIDC)</h4>
+          <p>Validates authentication claims via standard RS256 signatures, checking issuer, client audience, and expiration boundaries.</p>
         </div>
-        <div id="products" class="products"></div>
-      </section>
+        <div class="card feature-item">
+          <h4>Strict Input Validation</h4>
+          <p>Incoming data is sanitized and parsed against schema constraints using Zod, blocking XSS payloads and SQL injection strings.</p>
+        </div>
+        <div class="card feature-item">
+          <h4>Dynamic Threat Detection</h4>
+          <p>Monitors runtime behaviors to log audit trails and trigger immediate warnings on stock deviations, brute force, and privilege violations.</p>
+        </div>
+      </div>
     </section>
   </main>
-  <script src="/app.js"></script>
+  <script>
+    // Minimal health checker for landing page
+    async function checkHealth() {
+      const healthDot = document.getElementById('health-dot');
+      const appStatus = document.getElementById('app-status');
+      const dbStatus = document.getElementById('db-status');
+      try {
+        const response = await fetch('/health');
+        const data = await response.json();
+        appStatus.textContent = "Service Online";
+        dbStatus.textContent = `Database: ${data.database}`;
+        healthDot.className = data.database === 'connected' ? 'dot ok' : 'dot bad';
+      } catch (error) {
+        appStatus.textContent = 'Service Offline';
+        dbStatus.textContent = 'Server unreachable';
+        healthDot.className = 'dot bad';
+      }
+    }
+    checkHealth();
+    setInterval(checkHealth, 10000);
+  </script>
 </body>
 </html>

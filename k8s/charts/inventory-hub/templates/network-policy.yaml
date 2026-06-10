@@ -1,0 +1,47 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inventory-hub-network-policy
+spec:
+  podSelector:
+    matchLabels:
+      app: inventory-hub
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic to app on port 3000
+    - ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    # Allow egress to MongoDB
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mongo
+      ports:
+        - protocol: TCP
+          port: 27017
+    # Allow egress to Redis
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Allow egress to Kafka
+    - to:
+        - podSelector:
+            matchLabels:
+              app: kafka
+      ports:
+        - protocol: TCP
+          port: 9092
+    # Allow DNS resolution (required for service hostname lookup)
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

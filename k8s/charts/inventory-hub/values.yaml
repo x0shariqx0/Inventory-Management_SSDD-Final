@@ -1,0 +1,65 @@
+global:
+  secretName: inventory-hub-secrets
+
+app:
+  replicaCount: 3
+  image:
+    repository: x0shariqx0/inventory-hub
+    tag: latest
+    pullPolicy: Always
+  port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  hpa:
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 80
+
+mongo:
+  image: mongo:7
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  storage:
+    size: 2Gi
+    pvName: mongo-pv
+    pvcName: mongo-pvc
+
+redis:
+  image: redis:7-alpine
+  resources:
+    requests:
+      cpu: 100m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+zookeeper:
+  image: bitnami/zookeeper:3.9
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+kafka:
+  image: bitnami/kafka:3.7
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

@@ -154,20 +154,31 @@ const { app } = require('./server');
 
 let adminToken;
 let staffToken;
+let seededAdminToken;
 let createdProductId;
 
 beforeAll(async () => {
   // Clear mock stores before testing
   mockStores.clear();
+  
+  // Login as preseeded admin to get registration authorization token
+  const res = await request(app)
+    .post('/api/auth/login')
+    .send({
+      username: 'admin',
+      password: 'adminpassword'
+    });
+  seededAdminToken = res.body.token;
 });
 
 describe('InventoryHub Secure API Suite (In-Memory Verification)', () => {
   
   // 1. Register User tests
   describe('POST /api/auth/register', () => {
-    it('should successfully register an admin user', async () => {
+    it('should successfully register an admin user when authorized as admin', async () => {
       const res = await request(app)
         .post('/api/auth/register')
+        .set('Authorization', `Bearer ${seededAdminToken}`)
         .send({
           username: 'testadmin',
           password: 'adminpassword123',
@@ -179,9 +190,10 @@ describe('InventoryHub Secure API Suite (In-Memory Verification)', () => {
       expect(res.body.user).toHaveProperty('role', 'admin');
     });
 
-    it('should successfully register a staff user', async () => {
+    it('should successfully register a staff user when authorized as admin', async () => {
       const res = await request(app)
         .post('/api/auth/register')
+        .set('Authorization', `Bearer ${seededAdminToken}`)
         .send({
           username: 'teststaff',
           password: 'staffpassword123',
@@ -193,9 +205,44 @@ describe('InventoryHub Secure API Suite (In-Memory Verification)', () => {
       expect(res.body.user).toHaveProperty('role', 'staff');
     });
 
-    it('should reject registration attempts with XSS script tags', async () => {
+    it('should reject registration attempts without authorization header', async () => {
       const res = await request(app)
         .post('/api/auth/register')
+        .send({
+          username: 'unauthuser',
+          password: 'password123',
+          role: 'staff'
+        });
+      
+      expect(res.status).toBe(401);
+    });
+
+    it('should reject registration attempts by a staff user', async () => {
+      // First get staff token (pre-seeded staff)
+      const loginRes = await request(app)
+        .post('/api/auth/login')
+        .send({
+          username: 'staff',
+          password: 'staffpassword'
+        });
+      const localStaffToken = loginRes.body.token;
+
+      const res = await request(app)
+        .post('/api/auth/register')
+        .set('Authorization', `Bearer ${localStaffToken}`)
+        .send({
+          username: 'newuser',
+          password: 'password123',
+          role: 'staff'
+        });
+      
+      expect(res.status).toBe(403);
+    });
+
+    it('should reject registration attempts with XSS script tags when authorized', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .set('Authorization', `Bearer ${seededAdminToken}`)
         .send({
           username: 'evil<script>alert("xss")</script>',
           password: 'password123',
@@ -353,6 +400,39 @@ describe('InventoryHub Secure API Suite (In-Memory Verification)', () => {
       
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);
+    });
+  });
+
+  // 6. OIDC Mock Authentication tests
+  describe('OIDC Mock Identity Integration', () => {
+    it('should issue a valid OIDC JWT token and access products successfully', async () => {
+      const oidcTokenRes = await request(app)
+        .post('/oauth2/token')
+        .send({
+          username: 'oidcuser',
+          role: 'staff'
+        });
+      
+      expect(oidcTokenRes.status).toBe(200);
+      expect(oidcTokenRes.body).toHaveProperty('access_token');
+      const oidcToken = oidcTokenRes.body.access_token;
+
+      // Access GET /api/products using OIDC token
+      const res = await request(app)
+        .get('/api/products')
+        .set('Authorization', `Bearer ${oidcToken}`);
+      
+      expect(res.status).toBe(200);
+    });
+
+    it('should reject OIDC token request without username or role', async () => {
+      const res = await request(app)
+        .post('/oauth2/token')
+        .send({
+          username: 'oidcuser'
+        });
+      
+      expect(res.status).toBe(400);
     });
   });
 });

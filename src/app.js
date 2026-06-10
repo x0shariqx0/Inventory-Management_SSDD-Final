@@ -6,15 +6,19 @@ const healthDot = document.getElementById('health-dot');
 const appStatus = document.getElementById('app-status');
 const dbStatus = document.getElementById('db-status');
 
-// Auth & Admin UI Elements
-const loginAdminBtn = document.getElementById('login-admin-btn');
-const loginStaffBtn = document.getElementById('login-staff-btn');
+// Auth & Panels
 const logoutBtn = document.getElementById('logout-btn');
 const authStatus = document.getElementById('auth-status');
-const adminPanel = document.getElementById('admin-panel');
+const adminManagementSection = document.getElementById('admin-management-section');
 const viewLogsBtn = document.getElementById('view-logs-btn');
 const viewAlertsBtn = document.getElementById('view-alerts-btn');
 const logsDisplay = document.getElementById('logs-display');
+
+// Staff Registration Elements
+const staffRegistrationForm = document.getElementById('staff-registration-form');
+const regUsernameInput = document.getElementById('reg-username');
+const regPasswordInput = document.getElementById('reg-password');
+const regMessage = document.getElementById('registration-message');
 
 // Helper to parse JWT payload
 function parseJwt(token) {
@@ -42,81 +46,53 @@ async function authenticatedFetch(url, options = {}) {
   return fetch(url, options);
 }
 
-// Update Auth UI state
-function updateAuthState() {
+// Enforce authentication check on load
+function verifyAuthAndInitialize() {
   const token = localStorage.getItem('jwt_token');
-  if (token) {
-    const payload = parseJwt(token);
-    if (payload) {
-      loginAdminBtn.style.display = 'none';
-      loginStaffBtn.style.display = 'none';
-      logoutBtn.style.display = 'inline-block';
-      authStatus.textContent = `Logged in as: ${payload.username} (${payload.role})`;
-      authStatus.className = `auth-status ${payload.role}`;
-
-      if (payload.role === 'admin') {
-        adminPanel.style.display = 'block';
-      } else {
-        adminPanel.style.display = 'none';
-      }
-      return;
-    }
+  if (!token) {
+    // Redirect to landing page if unauthenticated
+    window.location.href = '/index.html';
+    return;
   }
 
-  // Not logged in or invalid token
-  loginAdminBtn.style.display = 'inline-block';
-  loginStaffBtn.style.display = 'inline-block';
-  logoutBtn.style.display = 'none';
-  authStatus.textContent = 'Not logged in (Requests will fail with 401)';
-  authStatus.className = 'auth-status';
-  adminPanel.style.display = 'none';
-  logsDisplay.style.display = 'none';
-}
-
-// Login Actions
-async function login(username, password) {
-  message.textContent = `Logging in as ${username}...`;
-  try {
-    const response = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Login failed');
-    }
-
-    localStorage.setItem('jwt_token', data.token);
-    message.textContent = 'Login successful!';
-    updateAuthState();
-    await loadProducts();
-    await checkHealth();
-  } catch (error) {
-    message.textContent = `Login Error: ${error.message}`;
+  const payload = parseJwt(token);
+  if (!payload || (payload.exp && Date.now() >= payload.exp * 1000)) {
+    // Expired or corrupt token
+    localStorage.removeItem('jwt_token');
+    window.location.href = '/index.html';
+    return;
   }
+
+  // Display user identity in dashboard header
+  authStatus.textContent = `Active Session: ${payload.username} (${payload.role})`;
+  authStatus.className = `auth-status ${payload.role}`;
+
+  // Configure admin-only views
+  if (payload.role === 'admin') {
+    adminManagementSection.style.display = 'grid';
+  } else {
+    adminManagementSection.style.display = 'none';
+  }
+
+  // Initial load
+  checkHealth();
+  loadProducts();
 }
 
-// Logout Action
+// Sign Out Action
 logoutBtn.addEventListener('click', () => {
   localStorage.removeItem('jwt_token');
-  message.textContent = 'Logged out successfully.';
-  updateAuthState();
-  loadProducts();
+  window.location.href = '/index.html';
 });
 
-loginAdminBtn.addEventListener('click', () => login('admin', 'adminpassword'));
-loginStaffBtn.addEventListener('click', () => login('staff', 'staffpassword'));
-
-// Logs & Alerts fetching
+// Admin View Audit Logs
 viewLogsBtn.addEventListener('click', async () => {
   logsDisplay.style.display = 'block';
-  logsDisplay.textContent = 'Fetching audit logs...';
+  logsDisplay.textContent = 'Fetching audit logs from MongoDB...';
   try {
     const response = await authenticatedFetch('/api/audit-logs');
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to fetch');
+    if (!response.ok) throw new Error(data.message || 'Failed to fetch audit logs');
 
     if (data.length === 0) {
       logsDisplay.textContent = 'No audit logs found.';
@@ -127,17 +103,19 @@ viewLogsBtn.addEventListener('click', async () => {
       `[${new Date(log.createdAt).toLocaleString()}] IP:${log.ipAddress} | User:${log.username} | Action:${log.action} | Resource:${log.resource}\nDetails: ${log.details}\n`
     ).join('\n');
   } catch (error) {
-    logsDisplay.textContent = `Error: ${error.message}`;
+    logsDisplay.textContent = `Access Denied: ${error.message}`;
+    logsDisplay.style.color = "var(--danger)";
   }
 });
 
+// Admin View Security Alerts
 viewAlertsBtn.addEventListener('click', async () => {
   logsDisplay.style.display = 'block';
-  logsDisplay.textContent = 'Fetching security alerts...';
+  logsDisplay.textContent = 'Fetching security warnings...';
   try {
     const response = await authenticatedFetch('/api/security-alerts');
     const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to fetch');
+    if (!response.ok) throw new Error(data.message || 'Failed to fetch security alerts');
 
     if (data.length === 0) {
       logsDisplay.textContent = 'No security alerts found.';
@@ -148,26 +126,68 @@ viewAlertsBtn.addEventListener('click', async () => {
       `[${new Date(alert.createdAt).toLocaleString()}] ALERT TYPE:${alert.type} | SEVERITY:${alert.severity.toUpperCase()}\nMessage: ${alert.message}\nMetadata: ${JSON.stringify(alert.metadata)}\n`
     ).join('\n');
   } catch (error) {
-    logsDisplay.textContent = `Error: ${error.message}`;
+    logsDisplay.textContent = `Access Denied: ${error.message}`;
+    logsDisplay.style.color = "var(--danger)";
   }
 });
 
+// Admin-Only Staff Registration Submission
+if (staffRegistrationForm) {
+  staffRegistrationForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    regMessage.textContent = 'Creating credentials...';
+    regMessage.style.color = 'var(--primary)';
+
+    const payload = {
+      username: regUsernameInput.value,
+      password: regPasswordInput.value,
+      role: 'staff' // Force role to staff
+    };
+
+    try {
+      const response = await authenticatedFetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.errors && Array.isArray(data.errors)) {
+          const errorMsgs = data.errors.map(err => `${err.field}: ${err.message}`).join(', ');
+          throw new Error(errorMsgs);
+        }
+        throw new Error(data.message || 'Registration failed');
+      }
+
+      staffRegistrationForm.reset();
+      regMessage.textContent = `Successfully created staff account: ${payload.username}`;
+      regMessage.style.color = 'var(--success)';
+    } catch (error) {
+      regMessage.textContent = `Registration Error: ${error.message}`;
+      regMessage.style.color = 'var(--danger)';
+    }
+  });
+}
+
+// Health Checker Probes
 async function checkHealth() {
   try {
     const response = await fetch('/health');
     const data = await response.json();
-    appStatus.textContent = `${data.app} is ${data.status}`;
-    dbStatus.textContent = `MongoDB: ${data.database}`;
+    appStatus.textContent = "Service Online";
+    dbStatus.textContent = `Database: ${data.database}`;
     healthDot.className = data.database === 'connected' ? 'dot ok' : 'dot bad';
   } catch (error) {
-    appStatus.textContent = 'Application unavailable';
+    appStatus.textContent = 'Service Offline';
     dbStatus.textContent = error.message;
     healthDot.className = 'dot bad';
   }
 }
 
+// Load Products
 async function loadProducts() {
-  productsContainer.innerHTML = '<div class="empty">Loading products...</div>';
+  productsContainer.innerHTML = '<div class="empty">Loading inventory database...</div>';
 
   try {
     const response = await authenticatedFetch('/api/products');
@@ -193,11 +213,12 @@ async function loadProducts() {
       </article>
     `).join('');
   } catch (error) {
-    productsContainer.innerHTML = `<div class="empty">Error loading products: ${error.message}</div>`;
+    productsContainer.innerHTML = `<div class="empty" style="color: var(--danger);">Error loading products: ${error.message}</div>`;
   }
 }
 
-async function deleteProduct(id) {
+// Delete Product
+window.deleteProduct = async function(id) {
   try {
     const response = await authenticatedFetch(`/api/products/${id}`, { method: 'DELETE' });
     const data = await response.json();
@@ -205,12 +226,13 @@ async function deleteProduct(id) {
       throw new Error(data.message || 'Failed to delete');
     }
     message.textContent = 'Product deleted successfully.';
+    message.style.color = 'var(--success)';
     await loadProducts();
-    await checkHealth();
   } catch (error) {
-    message.textContent = `Error deleting product: ${error.message}`;
+    message.textContent = `Deletion Error: ${error.message}`;
+    message.style.color = 'var(--danger)';
   }
-}
+};
 
 function escapeHtml(value) {
   return String(value)
@@ -221,9 +243,11 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
+// Product Form Submission
 form.addEventListener('submit', async event => {
   event.preventDefault();
   message.textContent = 'Saving product...';
+  message.style.color = 'var(--primary)';
 
   const payload = {
     name: document.getElementById('name').value,
@@ -242,7 +266,6 @@ form.addEventListener('submit', async event => {
     const data = await response.json();
 
     if (!response.ok) {
-      // Check for validation errors array
       if (data.errors && Array.isArray(data.errors)) {
         const errorMsgs = data.errors.map(err => `${err.field}: ${err.message}`).join(', ');
         throw new Error(errorMsgs);
@@ -252,17 +275,16 @@ form.addEventListener('submit', async event => {
 
     form.reset();
     message.textContent = 'Product saved successfully.';
+    message.style.color = 'var(--success)';
     await loadProducts();
-    await checkHealth();
   } catch (error) {
     message.textContent = error.message;
+    message.style.color = 'var(--danger)';
   }
 });
 
 refreshBtn.addEventListener('click', loadProducts);
 
-// Initialize application state
-updateAuthState();
-checkHealth();
-loadProducts();
+// Start
+verifyAuthAndInitialize();
 setInterval(checkHealth, 10000);

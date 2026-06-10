@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: mongo
-          image: mongo:7
+          image: {{ .Values.mongo.image | quote }}
           ports:
             - containerPort: 27017
           securityContext:
@@ -28,21 +28,21 @@ spec:
                 - ALL
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: {{ .Values.mongo.resources.requests.cpu | quote }}
+              memory: {{ .Values.mongo.resources.requests.memory | quote }}
             limits:
-              cpu: "500m"
-              memory: "256Mi"
+              cpu: {{ .Values.mongo.resources.limits.cpu | quote }}
+              memory: {{ .Values.mongo.resources.limits.memory | quote }}
           env:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: MONGO_ROOT_USER
             - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: MONGO_ROOT_PASSWORD
           volumeMounts:
             - name: mongo-storage
@@ -50,4 +50,4 @@ spec:
       volumes:
         - name: mongo-storage
           persistentVolumeClaim:
-            claimName: mongo-pvc
+            claimName: {{ .Values.mongo.storage.pvcName }}

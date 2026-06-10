@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const client = require('prom-client');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -11,6 +10,8 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const Redis = require('ioredis');
 const { Kafka } = require('kafkajs');
+
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -21,11 +22,33 @@ const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:3000';
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
 const KAFKA_BROKER = process.env.KAFKA_BROKER || 'localhost:9092';
 
+// OIDC Configuration & Keypair Generation
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  publicKeyEncoding: { type: 'spki', format: 'pem' },
+  privateKeyEncoding: { type: 'pkcs8', format: 'pem' }
+});
+const OIDC_ISSUER = process.env.OIDC_ISSUER || 'https://identity.inventoryhub.local/oauth2/default';
+const OIDC_AUDIENCE = process.env.OIDC_AUDIENCE || 'inventory-hub-api';
+
+const REDIS_PASSWORD = process.env.REDIS_PASSWORD || null;
+const REDIS_USE_TLS = process.env.REDIS_USE_TLS === 'true';
+
 // ---------------- Redis Client Setup ----------------
-const redis = new Redis(REDIS_URL, {
+const redisOptions = {
   maxRetriesPerRequest: 1,
   lazyConnect: true
-});
+};
+
+if (REDIS_PASSWORD) {
+  redisOptions.password = REDIS_PASSWORD;
+}
+
+if (REDIS_USE_TLS) {
+  redisOptions.tls = {};
+}
+
+const redis = new Redis(REDIS_URL, redisOptions);
 
 redis.on('error', (err) => {
   console.warn(`Redis is unavailable: ${err.message}. Failed logins will fallback to MongoDB.`);
@@ -79,15 +102,33 @@ async function resetFailedAttempts(username) {
   }
 }
 
+const KAFKA_SASL_USERNAME = process.env.KAFKA_SASL_USERNAME || null;
+const KAFKA_SASL_PASSWORD = process.env.KAFKA_SASL_PASSWORD || null;
+const KAFKA_USE_SSL = process.env.KAFKA_USE_SSL === 'true';
+
 // ---------------- Kafka Client Setup ----------------
-const kafka = new Kafka({
+const kafkaConfig = {
   clientId: 'inventory-hub',
   brokers: [KAFKA_BROKER],
   connectionTimeout: 3000,
   initialRetry: {
     retries: 1
   }
-});
+};
+
+if (KAFKA_USE_SSL) {
+  kafkaConfig.ssl = true;
+}
+
+if (KAFKA_SASL_USERNAME && KAFKA_SASL_PASSWORD) {
+  kafkaConfig.sasl = {
+    mechanism: 'plain',
+    username: KAFKA_SASL_USERNAME,
+    password: KAFKA_SASL_PASSWORD
+  };
+}
+
+const kafka = new Kafka(kafkaConfig);
 
 const producer = kafka.producer();
 let kafkaConnected = false;
@@ -164,33 +205,6 @@ app.use('/api/auth/register', authLimiter);
 
 app.use(express.static(path.join(__dirname, 'src')));
 
-// ---------------- Prometheus Metrics ----------------
-client.collectDefaultMetrics();
-
-const httpRequestCounter = new client.Counter({
-  name: 'inventoryhub_http_requests_total',
-  help: 'Total number of HTTP requests received by InventoryHub',
-  labelNames: ['method', 'route', 'status_code']
-});
-
-const productCounter = new client.Gauge({
-  name: 'inventoryhub_products_total',
-  help: 'Total number of products stored in MongoDB'
-});
-
-app.use((req, res, next) => {
-  const end = res.end;
-  res.end = function (...args) {
-    const route = req.route && req.route.path ? req.route.path : req.path;
-    httpRequestCounter.inc({
-      method: req.method,
-      route,
-      status_code: res.statusCode
-    });
-    end.apply(res, args);
-  };
-  next();
-});
 
 // ---------------- Database Models ----------------
 
@@ -327,11 +341,23 @@ const authenticate = async (req, res, next) => {
 
   const token = authHeader.split(' ')[1];
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
+    const decodedUnverified = jwt.decode(token);
+    if (decodedUnverified && decodedUnverified.iss === OIDC_ISSUER) {
+      // Verify OIDC RSA token
+      const verified = jwt.verify(token, publicKey, { algorithms: ['RS256'], audience: OIDC_AUDIENCE, issuer: OIDC_ISSUER });
+      req.user = {
+        id: verified.sub,
+        username: verified.preferred_username,
+        role: verified.role
+      };
+    } else {
+      // Local token fallback
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.user = decoded;
+    }
     next();
   } catch (error) {
-    await logAudit(req, 'UNAUTHORIZED_ACCESS', req.originalUrl, 'Invalid or expired token');
+    await logAudit(req, 'UNAUTHORIZED_ACCESS', req.originalUrl, `Invalid or expired token: ${error.message}`);
     return res.status(401).json({ message: 'Invalid or expired token.' });
   }
 };
@@ -384,13 +410,6 @@ async function connectDatabase() {
   }
 }
 
-async function refreshProductMetric() {
-  if (mongoose.connection.readyState === 1) {
-    const count = await Product.countDocuments();
-    productCounter.set(count);
-  }
-}
-
 async function seedDefaultUsers() {
   try {
     const adminExists = await User.findOne({ username: 'admin' });
@@ -430,19 +449,47 @@ app.get('/health', async (req, res) => {
   });
 });
 
-app.get('/metrics', async (req, res) => {
-  try {
-    await refreshProductMetric();
-    res.set('Content-Type', client.register.contentType);
-    res.end(await client.register.metrics());
-  } catch (error) {
-    res.status(500).send(error.message);
+// --- Mock OIDC IdP Endpoints ---
+app.get('/.well-known/jwks.json', (req, res) => {
+  res.json({
+    keys: [
+      {
+        kty: 'RSA',
+        use: 'sig',
+        alg: 'RS256',
+        kid: 'mock-key-id-1',
+        n: 'mock-modulus',
+        e: 'AQAB'
+      }
+    ]
+  });
+});
+
+app.post('/oauth2/token', (req, res) => {
+  const { username, role } = req.body;
+  if (!username || !role) {
+    return res.status(400).json({ error: 'Username and role are required' });
   }
+  const payload = {
+    iss: OIDC_ISSUER,
+    sub: `usr_${username}`,
+    aud: OIDC_AUDIENCE,
+    preferred_username: username,
+    role: role,
+    groups: [role],
+    exp: Math.floor(Date.now() / 1000) + (60 * 60)
+  };
+  const token = jwt.sign(payload, privateKey, { algorithm: 'RS256', keyid: 'mock-key-id-1' });
+  res.json({
+    access_token: token,
+    token_type: 'Bearer',
+    expires_in: 3600
+  });
 });
 
 // --- Auth Endpoints ---
 
-app.post('/api/auth/register', validateBody(registerValidationSchema), async (req, res) => {
+app.post('/api/auth/register', authenticate, authorize('admin'), validateBody(registerValidationSchema), async (req, res) => {
   try {
     const { username, password, role } = req.body;
 

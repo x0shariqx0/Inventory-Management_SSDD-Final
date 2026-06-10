@@ -16,13 +16,13 @@ spec:
     spec:
       containers:
         - name: redis
-          image: redis:7-alpine
+          image: {{ .Values.redis.image | quote }}
           args: ["--requirepass", "$(REDIS_PASSWORD)"]
           env:
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: REDIS_PASSWORD
           ports:
             - containerPort: 6379
@@ -35,8 +35,8 @@ spec:
                 - ALL
           resources:
             requests:
-              cpu: "100m"
-              memory: "64Mi"
+              cpu: {{ .Values.redis.resources.requests.cpu | quote }}
+              memory: {{ .Values.redis.resources.requests.memory | quote }}
             limits:
-              cpu: "200m"
-              memory: "128Mi"
+              cpu: {{ .Values.redis.resources.limits.cpu | quote }}
+              memory: {{ .Values.redis.resources.limits.memory | quote }}

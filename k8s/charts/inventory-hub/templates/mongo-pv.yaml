@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Values.mongo.storage.pvName }}
+spec:
+  capacity:
+    storage: {{ .Values.mongo.storage.size }}
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"

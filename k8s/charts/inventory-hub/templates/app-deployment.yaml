@@ -5,7 +5,7 @@ metadata:
   labels:
     app: inventory-hub
 spec:
-  replicas: 3
+  replicas: {{ .Values.app.replicaCount }}
   selector:
     matchLabels:
       app: inventory-hub
@@ -16,10 +16,10 @@ spec:
     spec:
       containers:
         - name: inventory-hub
-          image: x0shariqx0/inventory-hub:latest
-          imagePullPolicy: Always
+          image: "{{ .Values.app.image.repository }}:{{ .Values.app.image.tag }}"
+          imagePullPolicy: {{ .Values.app.image.pullPolicy }}
           ports:
-            - containerPort: 3000
+            - containerPort: {{ .Values.app.port }}
           securityContext:
             runAsNonRoot: true
             runAsUser: 1001
@@ -29,58 +29,58 @@ spec:
                 - ALL
           env:
             - name: PORT
-              value: "3000"
+              value: "{{ .Values.app.port }}"
             - name: APP_NAME
               value: "InventoryHub"
             - name: MONGO_URI
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: MONGO_URI
             - name: MONGODB_URI
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: MONGO_URI
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: JWT_SECRET
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: REDIS_URL
             - name: REDIS_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: REDIS_PASSWORD
             - name: REDIS_USE_TLS
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: REDIS_USE_TLS
             - name: KAFKA_BROKER
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: KAFKA_BROKER
             - name: KAFKA_SASL_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: KAFKA_SASL_USERNAME
             - name: KAFKA_SASL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: KAFKA_SASL_PASSWORD
             - name: KAFKA_USE_SSL
               valueFrom:
                 secretKeyRef:
-                  name: inventory-hub-secrets
+                  name: {{ .Values.global.secretName }}
                   key: KAFKA_USE_SSL
             - name: OIDC_ISSUER
               value: "https://identity.inventoryhub.local/oauth2/default"
@@ -88,20 +88,20 @@ spec:
               value: "inventory-hub-api"
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: {{ .Values.app.resources.requests.cpu | quote }}
+              memory: {{ .Values.app.resources.requests.memory | quote }}
             limits:
-              cpu: "500m"
-              memory: "256Mi"
+              cpu: {{ .Values.app.resources.limits.cpu | quote }}
+              memory: {{ .Values.app.resources.limits.memory | quote }}
           readinessProbe:
             httpGet:
               path: /health
-              port: 3000
+              port: {{ .Values.app.port }}
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /health
-              port: 3000
+              port: {{ .Values.app.port }}
             initialDelaySeconds: 20
             periodSeconds: 20
