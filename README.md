@@ -1,16 +1,15 @@
 # InventoryHub
 
-An inventory management web application built for the Secure Software Development (SSDD) course project. It features credential-based authentication, role-based access control (RBAC), security audit logging, and containerized deployment manifests.
+A secure inventory management web application. It features credential-based authentication, role-based access control (RBAC), security audit logging, and containerized deployment configurations.
 
 ---
 
-## Overview
+## Features
 
-InventoryHub consists of a multi-page frontend (landing page, login portal, and dashboard) and a Node.js Express backend. It implements security features such as:
-- **Authentication**: JWT token authorization with support for local validation or mock federated OIDC token verification.
-- **Access Control**: Role-based permissions separating `admin` and `staff` activities.
-- **Input Validation**: Zod-based request filtering to actively block common XSS and SQL injection payloads.
-- **Logging & Alerting**: Real-time audit logs in MongoDB and brute-force detection tracked in Redis, with events published to Kafka.
+- **Authentication**: JWT token authorization supporting local signature checks and federated mock OIDC token verification.
+- **Access Control**: Role-based permissions separating `admin` and `staff` access to routes and data.
+- **Input Validation**: Request body filtering using Zod schemas to block suspected SQL injection and XSS payloads.
+- **Logging & Threat Alerting**: Runtime audit logs saved to MongoDB, brute-force login limits tracked in Redis, and security events published to Kafka.
 
 ---
 
@@ -18,30 +17,30 @@ InventoryHub consists of a multi-page frontend (landing page, login portal, and 
 
 ```text
 inventory-management/
-├── docker/                             # Dockerfile and build context
-├── docs/                               # Project documentation
+├── docker/                             # Dockerfile and container build contexts
+├── docs/                               # General documentation
 ├── k8s/                                # Kubernetes manifests and Helm charts
 │   ├── charts/                         # Helm packaging
 │   └── policies/                       # Kyverno policy definitions
 ├── reports/                            # Security, testing, and compliance reports
-│   └── images/                         # Screenshot assets for verification
+│   └── images/                         # Screenshot assets
 ├── src/                                # Frontend UI assets (HTML, CSS, JS)
 ├── docker-compose.yml                  # Local container environment orchestration
 ├── package.json                        # Node.js dependencies and scripts
-├── server.js                           # Secure API server
+├── server.js                           # Express API server
 └── server.test.js                      # Jest integration tests
 ```
 
 ---
 
-## Setup & Running
+## Getting Started
 
 ### Option 1: Docker Compose (Recommended)
-To start the application along with Zookeeper, Kafka, Redis, and MongoDB, run:
+To start the entire stack (Zookeeper, Kafka, Redis, MongoDB, and the API server), run:
 ```bash
 docker compose up --build -d
 ```
-The application will be accessible at: http://localhost:3000
+Access the application at: http://localhost:3000
 
 ---
 
@@ -56,57 +55,47 @@ The application will be accessible at: http://localhost:3000
    cp .env.example .env
    ```
 3. **Start the server**:
-   Make sure local MongoDB, Redis, and Kafka services are running, then start the application:
+   Ensure your local MongoDB, Redis, and Kafka services are running, then run:
    ```bash
    npm start
    ```
 
 ---
 
-## Accounts & Mappings
+## Default Credentials
 
-The database initializes with a default administrator. Administrators can register staff accounts:
+The database initializes with a pre-seeded administrator who can register other team members:
 
-1. **System Administrator (Pre-seeded)**:
+1. **Administrator**:
    - **Username**: `admin`
    - **Password**: `adminpassword`
-   - **Access**: Log in through the Admin Portal to view the full inventory, register staff, and view system alerts.
+   - **Access**: Full read/write capability, staff user registration, and access to security logs and audit alerts.
 2. **Staff Accounts**:
-   - Logged in as `admin`, use the registration panel on the dashboard to create staff credentials.
-   - Staff members can log in via the Staff Portal to read, add, or edit products, but are blocked from deleting products and viewing logs.
+   - Registered by the administrator from the dashboard panel.
+   - **Access**: Read, create, and edit products. Blocked from deleting products and viewing system alerts.
 
 ---
 
-## Testing & Verification
+## Running Tests
 
-### Run Automated Unit Tests
-To execute the Jest integration test suite (covering OIDC validation, endpoint protection, and RBAC rules):
+To run the Jest integration test suite (verifying authentication gates, RBAC routes, and schema validation):
 ```bash
 npm run test
 ```
 
 ---
 
-## Kubernetes & Helm Deployment
+## Kubernetes Deployment
 
 ### Deploy Manifests
-Deploy the resources and secrets to your cluster:
+To apply the deployment manifests and secrets to your cluster:
 ```bash
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/
 ```
 
-### Install with Helm
-To deploy using the provided Helm chart:
+### Deploy with Helm
+To deploy using the Helm chart:
 ```bash
 helm install inventory-hub k8s/charts/inventory-hub
 ```
-
----
-
-## Project Deliverables (Phases 3 & 4)
-
-Complete compliance audits and test reports are saved in the `reports/` folder:
-
-*   **[Security, Testing & Compliance Report (Word Docx)](file:///c:/Users/shariq%20abbasi/Desktop/inventory%20management/reports/Security_and_Testing_Report.docx)**: Microsoft Word report format for printing and direct submission.
-*   **[Security, Testing & Compliance Report (Markdown)](file:///c:/Users/shariq%20abbasi/Desktop/inventory%20management/reports/Security_and_Testing_Report.md)**: Markdown version, containing the step-by-step guide for capturing and embedding required verification screenshots.
