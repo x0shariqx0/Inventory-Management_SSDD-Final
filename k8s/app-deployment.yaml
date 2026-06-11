@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
         - name: inventory-hub
-          image: x0shariqx0/inventory-hub:latest
-          imagePullPolicy: Always
+          image: inventorymanagement-app:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           securityContext:
@@ -68,15 +68,9 @@ spec:
                   name: inventory-hub-secrets
                   key: KAFKA_BROKER
             - name: KAFKA_SASL_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: inventory-hub-secrets
-                  key: KAFKA_SASL_USERNAME
+              value: ""
             - name: KAFKA_SASL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: inventory-hub-secrets
-                  key: KAFKA_SASL_PASSWORD
+              value: ""
             - name: KAFKA_USE_SSL
               valueFrom:
                 secretKeyRef:

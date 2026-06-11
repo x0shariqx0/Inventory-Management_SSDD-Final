@@ -119,6 +119,15 @@ npm run test
 
 ---
 
+## 📊 Security & Compliance Deliverables (Phases 3 & 4)
+
+To satisfy final exam deliverables for secure codebase audit verification, a comprehensive security, testing, and compliance report is provided in both Microsoft Word (.docx) and Markdown (.md) formats under the `reports/` folder:
+
+*   **[Security, Testing & Compliance Report (Word Format)](file:///c:/Users/shariq%20abbasi/Desktop/inventory%20management/reports/Security_and_Testing_Report.docx)**: The Microsoft Word version of the report, perfect for printing or submitting directly.
+*   **[Security, Testing & Compliance Report (Markdown Format)](file:///c:/Users/shariq%20abbasi/Desktop/inventory%20management/reports/Security_and_Testing_Report.md)**: The standard Markdown version, including a step-by-step visual screenshot verification guide showing where to place and how to capture the required screenshots.
+
+---
+
 ## ☸️ Kubernetes & Helm Deployments
 
 ### Apply Raw Kubernetes Manifests
