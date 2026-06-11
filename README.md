@@ -1,149 +1,112 @@
-# InventoryHub - Secure Cloud-Native Inventory Platform
+# InventoryHub
 
-InventoryHub is an enterprise secure, cloud-native inventory management platform built for the Secure Software Development (SSDD) lab final project. 
-
-It features a multi-page web application architecture (Landing Page, System Sign In, and Management Dashboard) designed with Zero-Trust network policies, mock OIDC identity token claims validation, and advanced runtime logging.
+An inventory management web application built for the Secure Software Development (SSDD) course project. It features credential-based authentication, role-based access control (RBAC), security audit logging, and containerized deployment manifests.
 
 ---
 
-## 🚀 Key Project Features
+## Overview
 
-- **Multi-Page Layout**: Dedicated landing page, separate credential-based login portal, and a secure administration dashboard.
-- **Admin-Restricted Registration**: Only authenticated administrators can register staff members and issue credentials.
-- **Role-Based Access Control (RBAC)**: Admins have full access (CRUD + Audit Trails + Warnings); Staff can only create/update products (Restricted deletions).
-- **Hardened Caching & Events**: Redis and Kafka client integrations built with SSL/TLS and password/SASL authentication structures.
-- **Microservice Hardening**: Containers running as non-root with dropped Linux capabilities and CPU/Memory limits.
-- **Policy-as-Code**:workloads are governed at the cluster level by Kyverno policies.
-- **Static Code Analysis**: Custom scan configurations defined for SonarQube and CodeQL.
+InventoryHub consists of a multi-page frontend (landing page, login portal, and dashboard) and a Node.js Express backend. It implements security features such as:
+- **Authentication**: JWT token authorization with support for local validation or mock federated OIDC token verification.
+- **Access Control**: Role-based permissions separating `admin` and `staff` activities.
+- **Input Validation**: Zod-based request filtering to actively block common XSS and SQL injection payloads.
+- **Logging & Alerting**: Real-time audit logs in MongoDB and brute-force detection tracked in Redis, with events published to Kafka.
 
 ---
 
-## 📁 Project Directory Structure
+## Project Structure
 
 ```text
 inventory-management/
-├── docker/                             # Hardened Docker contexts
-│   ├── Dockerfile
-│   └── .dockerignore
-├── docs/                               # Security documentation
-│   └── Memory_Safety_Mitigation.md
-├── k8s/                                # Kubernetes orchestrations
-│   ├── charts/                         # Helm Chart packaging
-│   │   └── inventory-hub/
-│   │       ├── Chart.yaml
-│   │       ├── values.yaml
-│   │       └── templates/              # Manifest templates (PV, PVC, HPA, NetPolicy, etc.)
-│   ├── policies/                       # Policy-as-Code
-│   │   └── pod-security-policies.yaml  # Kyverno pod security standards
-│   ├── app-deployment.yaml
-│   ├── app-hpa.yaml
-│   ├── app-service.yaml
-│   ├── kafka-deployment.yaml
-│   ├── kafka-service.yaml
-│   ├── mongo-deployment.yaml
-│   ├── mongo-pv.yaml
-│   ├── mongo-pvc.yaml
-│   ├── mongo-service.yaml
-│   ├── network-policy.yaml
-│   ├── redis-deployment.yaml
-│   ├── redis-service.yaml
-│   └── secret.yaml
-├── reports/                            # CIS compliance and test audit reports
-├── src/                                # Frontend UI assets (index.html, login.html, dashboard.html)
-│   ├── app.js
-│   ├── index.html
-│   ├── login.html
-│   ├── dashboard.html
-│   └── style.css
-├── docker-compose.yml                  # Local environment orchestration
-├── package.json
-├── server.js                           # Node.js Express Secure API Server
-├── server.test.js                      # Jest Integration Test Suite
-└── sonar-project.properties            # SonarQube scanning properties
+├── docker/                             # Dockerfile and build context
+├── docs/                               # Project documentation
+├── k8s/                                # Kubernetes manifests and Helm charts
+│   ├── charts/                         # Helm packaging
+│   └── policies/                       # Kyverno policy definitions
+├── reports/                            # Security, testing, and compliance reports
+│   └── images/                         # Screenshot assets for verification
+├── src/                                # Frontend UI assets (HTML, CSS, JS)
+├── docker-compose.yml                  # Local container environment orchestration
+├── package.json                        # Node.js dependencies and scripts
+├── server.js                           # Secure API server
+└── server.test.js                      # Jest integration tests
 ```
 
 ---
 
-## ⚙️ Initial Run Procedures
+## Setup & Running
 
-### Option 1: Run via Docker Compose (Simplest & Recommended)
-Rebuild and launch the entire secure container stack including the backend application, Zookeeper, Kafka, Redis, and MongoDB:
+### Option 1: Docker Compose (Recommended)
+To start the application along with Zookeeper, Kafka, Redis, and MongoDB, run:
 ```bash
 docker compose up --build -d
 ```
-- Open your browser to: [http://localhost:3000](http://localhost:3000)
+The application will be accessible at: http://localhost:3000
 
 ---
 
-### Option 2: Running Locally (Bare Metal Node.js)
-1. **Install Dependencies**:
+### Option 2: Running Locally (Node.js)
+1. **Install dependencies**:
    ```bash
    npm install
    ```
-2. **Setup Local Environment**:
-   Copy `.env.example` to `.env` and fill in local connection URIs:
+2. **Setup environment variables**:
+   Copy the example environment file:
    ```bash
    cp .env.example .env
    ```
-3. **Start Development Server**:
-   Ensure local Mongo, Redis, and Kafka services are running, then execute:
+3. **Start the server**:
+   Make sure local MongoDB, Redis, and Kafka services are running, then start the application:
    ```bash
    npm start
    ```
 
 ---
 
-## 🔐 Credentials & Access Control Flow
+## Accounts & Mappings
 
-The platform initializes a single system administrator. Admins are then responsible for provisioning staff members:
+The database initializes with a default administrator. Administrators can register staff accounts:
 
 1. **System Administrator (Pre-seeded)**:
    - **Username**: `admin`
    - **Password**: `adminpassword`
-   - **Access**: Click **Access Admin Portal** on the Landing Page, login with the credentials, and manage inventory.
-2. **Staff Provisioning**:
-   - Logged in as `admin`, use the **Register New Staff Member** panel in the dashboard to create a new staff account (e.g., `staff2` / `staffpassword`).
-   - This sends an authorized call to `/api/auth/register` (guarded so only admins can execute it) and registers the user.
-3. **Staff Login**:
-   - Log out, access the **Staff Member Portal** on the landing page, and sign in with the new staff credentials.
+   - **Access**: Log in through the Admin Portal to view the full inventory, register staff, and view system alerts.
+2. **Staff Accounts**:
+   - Logged in as `admin`, use the registration panel on the dashboard to create staff credentials.
+   - Staff members can log in via the Staff Portal to read, add, or edit products, but are blocked from deleting products and viewing logs.
 
 ---
 
-## 🧪 Testing and Verification
+## Testing & Verification
 
 ### Run Automated Unit Tests
-Execute the Jest integration test suite verifying OIDC validations, route protections, and RBAC mappings:
+To execute the Jest integration test suite (covering OIDC validation, endpoint protection, and RBAC rules):
 ```bash
 npm run test
 ```
 
 ---
 
-## 📊 Security & Compliance Deliverables (Phases 3 & 4)
+## Kubernetes & Helm Deployment
 
-To satisfy final exam deliverables for secure codebase audit verification, a comprehensive security, testing, and compliance report is provided in both Microsoft Word (.docx) and Markdown (.md) formats under the `reports/` folder:
-
-*   **[Security, Testing & Compliance Report (Word Format)](file:///c:/Users/shariq%20abbasi/Desktop/inventory%20management/reports/Security_and_Testing_Report.docx)**: The Microsoft Word version of the report, perfect for printing or submitting directly.
-*   **[Security, Testing & Compliance Report (Markdown Format)](file:///c:/Users/shariq%20abbasi/Desktop/inventory%20management/reports/Security_and_Testing_Report.md)**: The standard Markdown version, including a step-by-step visual screenshot verification guide showing where to place and how to capture the required screenshots.
-
----
-
-## ☸️ Kubernetes & Helm Deployments
-
-### Apply Raw Kubernetes Manifests
-Apply secrets and resources directly to your cluster:
+### Deploy Manifests
+Deploy the resources and secrets to your cluster:
 ```bash
 kubectl apply -f k8s/secret.yaml
 kubectl apply -f k8s/
 ```
 
-### Install using Helm Chart
-Deploy the templated and parameterized chart:
+### Install with Helm
+To deploy using the provided Helm chart:
 ```bash
 helm install inventory-hub k8s/charts/inventory-hub
 ```
-Verify the installation:
-```bash
-helm list
-kubectl get pods
-```
+
+---
+
+## Project Deliverables (Phases 3 & 4)
+
+Complete compliance audits and test reports are saved in the `reports/` folder:
+
+*   **[Security, Testing & Compliance Report (Word Docx)](file:///c:/Users/shariq%20abbasi/Desktop/inventory%20management/reports/Security_and_Testing_Report.docx)**: Microsoft Word report format for printing and direct submission.
+*   **[Security, Testing & Compliance Report (Markdown)](file:///c:/Users/shariq%20abbasi/Desktop/inventory%20management/reports/Security_and_Testing_Report.md)**: Markdown version, containing the step-by-step guide for capturing and embedding required verification screenshots.
