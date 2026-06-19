@@ -1,0 +1,29 @@
+name: Phase 6 DevSecOps Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  security-and-monitoring-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run AI Anomaly Detection Script
+        run: python monitor/ai/anomaly_detection.py
+
+      - name: Run Monitoring Prototype
+        run: python monitor/system_monitor.py
+
+      - name: DevSecOps Pipeline Completed
+        run: echo "Phase 6 CI/CD security pipeline completed successfully."
