@@ -1,0 +1,1 @@
+Inventory Management SSDD Project - Infrastructure as Code implemented using Terraform.
